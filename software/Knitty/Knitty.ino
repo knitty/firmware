@@ -27,20 +27,18 @@ const unsigned char PATTERN_LENGTH = 30;
 char currentDirection = DIRECTION_UNKNOWN;
 char lastDirection = DIRECTION_UNKNOWN;
 
-signed int endPatternIndex = 10000;
-signed int currentCursorPosition = 0;
+signed int currentCursorPosition = -14;
+signed int leftEndCursorPosition = 0;
 unsigned int currentPatternIndex = 0;
 
-char knitPattern[PATTERN_LENGTH] = {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0};
+//char knitPattern[PATTERN_LENGTH] = {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0};
+char knitPattern[PATTERN_LENGTH] = {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
 
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Hallo Knitty, hello World!");
 
-  // Schwurbel
-  endPatternIndex = 10000;
-  
   // Setup CURSOR pin change interrupt
   //pinMode(PIN_IFDR, INPUT);
   //attachInterrupt(INT_IFDR, interruptPinChangeCarriageConnect, RISING);
@@ -63,14 +61,13 @@ void loop() {
   if(currentButtonStatus == 1) {    
     Serial.println("Reset cursor counter to zero");
     currentCursorPosition = 0;
-    endPatternIndex = 10000;
     currentPatternIndex = 0;
   }
 }
 
 void setNeedleByCursor(char cursorPosition) {
  
-  if(cursorPosition >= PATTERN_LENGTH && cursorPosition < 0) {
+  if(cursorPosition > PATTERN_LENGTH-1 && cursorPosition < 0) {
     Serial.print("Warning! Needle out of range");
     Serial.println(cursorPosition, 10);
     return;
@@ -82,8 +79,10 @@ void setNeedleByCursor(char cursorPosition) {
 void setNeedle(char state) {  
   if(state == 1) {
     digitalWrite(PIN_NEEDLE, HIGH);
+    Serial.print("HIGH");
   } else {
-    digitalWrite(PIN_NEEDLE, LOW);  
+    digitalWrite(PIN_NEEDLE, LOW); 
+   Serial.print("LOW"); 
   }
 }
 
@@ -105,19 +104,19 @@ void interruptPinChangeEncoder() {
   
   // Check if we're in range of our needles
   if((currentDirection == DIRECTION_RIGHT_LEFT && currentCursorPosition > 0) ||
-     (currentDirection == DIRECTION_LEFT_RIGHT && currentCursorPosition <= endPatternIndex)) {
+     (currentDirection == DIRECTION_LEFT_RIGHT && currentCursorPosition <= leftEndCursorPosition)) {
         
     Serial.print("PI: ");
     Serial.println(currentPatternIndex, 10);
 
-    if(currentPatternIndex >= PATTERN_LENGTH) {
+    if(currentPatternIndex >= PATTERN_LENGTH-1) {
          
        setNeedle(0);
        currentPatternIndex = 0;
        
        if(currentDirection == DIRECTION_RIGHT_LEFT) {
          Serial.println("RTL Pattern finished!");
-         endPatternIndex = currentCursorPosition;
+         leftEndCursorPosition = currentCursorPosition-1;
        } else {
          Serial.println("LTR Pattern finished!");
        }
@@ -144,3 +143,4 @@ void interruptPinChangeEncoder() {
 void interruptPinChangeCarriageConnect() {  
   Serial.println("IFDR up");
 }
+
