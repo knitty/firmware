@@ -50,14 +50,14 @@ bool isKnitting = false;
 // Parser states
 #define COM_PARSE_CMD      0x01
 #define COM_PARSE_SEP      0x02
-#define COM_PARSE_PLOAD    0x0
+#define COM_PARSE_PLOAD    0x03
 
 
 unsigned char parserState = COM_PARSE_CMD;
 
 unsigned char parserReceivedCommand = 0;
-char parserReceivedPayload[255] = {
-  0};
+char parserReceivedPayload[255] = {0};
+
 size_t parserReceivedBytes = 0;
 
 unsigned char patternLength = 0;
