@@ -41,6 +41,10 @@ unsigned char knitPattern[255] = {0};
 #define COM_CMD_PATTERN_END  'E'
 #define COM_CMD_DIRECTION    'D'
 #define COM_CMD_DEBUG        'V'
+#define COM_CMD_RESPONSE     'R'
+
+#define COM_RESPONSE_OK      "OK"
+#define COM_RESPONSE_FAIL    "FAIL"
 
 #define COM_CMD_PLOAD_END    '\n'
 
@@ -94,6 +98,12 @@ void executeCommand(unsigned char cmd, char *payload, size_t length) {
   }
 }
 
+void sendCommand(unsigned char cmd, char *payload) {
+  Serial.write(cmd);
+  Serial.write(COM_PARSE_SEP);
+  Serial.write(payload);
+}
+
 void parserSerialStream() {
   
   if (Serial.available() == 0) {
@@ -132,7 +142,7 @@ void parserSerialStream() {
         executeCommand(parserReceivedCommand, parserReceivedPayload, parserReceivedBytes);
         parserState = COM_PARSE_CMD;
         
-        Serial.println("OK");
+        sendCommand(COM_CMD_RESPONSE, COM_RESPONSE_OK);
         break;
       }
         
@@ -154,7 +164,11 @@ void setNeedleByCursor(char cursorPosition) {
     return;
   }
  
-  setNeedle(knitPattern[cursorPosition]);
+  if(currentDirection == DIRECTION_RIGHT_LEFT) {
+    setNeedle(knitPattern[cursorPosition]);
+  } else if(currentDirection == DIRECTION_LEFT_RIGHT) {
+    setNeedle(knitPattern[patternLength-cursorPosition]);
+  }
 } 
 
 void setNeedle(char state) {  
@@ -189,18 +203,18 @@ void interruptPinChangeEncoder() {
        setNeedle(0);
        currentPatternIndex = 0;
        
+       sendCommand(COM_CMD_PATTERN_END, "1");
+       
+       // Remember last cursor position to begin for the opposite direction
        if(currentDirection == DIRECTION_RIGHT_LEFT) {
          leftEndCursorPosition = currentCursorPosition-1;
        }
        
     } else {
           
-      if(currentDirection == DIRECTION_RIGHT_LEFT && currentPinChangeValue == 0) {
-        setNeedleByCursor(currentPatternIndex);
-        currentPatternIndex++;
-      }
-      
-      if(currentDirection == DIRECTION_LEFT_RIGHT && currentPinChangeValue == 1) {
+      // React on FALLING Edge for RTL, RISING for LTR
+      if((currentDirection == DIRECTION_RIGHT_LEFT && currentPinChangeValue == 0) ||
+         (currentDirection == DIRECTION_LEFT_RIGHT && currentPinChangeValue == 1) ) {
         setNeedleByCursor(currentPatternIndex);
         currentPatternIndex++;
       }
@@ -210,5 +224,11 @@ void interruptPinChangeEncoder() {
   if(lastDirection != currentDirection) {
     lastDirection = currentDirection;
     currentPatternIndex = 0;
+    
+    if(currentDirection == DIRECTION_RIGHT_LEFT) {
+      sendCommand(COM_CMD_DIRECTION, "RTL");
+    } else {
+      sendCommand(COM_CMD_DIRECTION, "LTR");
+    }
   }
 }
