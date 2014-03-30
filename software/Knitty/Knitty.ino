@@ -83,22 +83,22 @@ void setup() {
 void executeCommand(unsigned char cmd, char *payload, size_t length) {
 
   switch(cmd) {
-  case COM_CMD_PATTERN:
-
-    // Erase ALL THE data!
-    memset(knitPattern, 0, 255);
-
-    for(unsigned char i = 0; i < length; i++) {
-      knitPattern[i] = (payload[i] == '1')? 1 : 0;
-    }
-
-    patternLength = length;
-
-    break;
-
-  case COM_CMD_CURSOR:
-    currentCursorPosition = atoi(payload);
-    break;
+    case COM_CMD_PATTERN:
+  
+      // Erase ALL THE data!
+      memset(knitPattern, 0, 255);
+  
+      for(unsigned char i = 0; i < length; i++) {
+        knitPattern[i] = (payload[i] == '1')? 1 : 0;
+      }
+  
+      patternLength = length;
+  
+      break;
+  
+    case COM_CMD_CURSOR:
+      currentCursorPosition = atoi(payload);
+      break;
   }
 }
 
@@ -118,43 +118,43 @@ void parserSerialStream() {
   char buffer = Serial.read();
 
   switch(parserState) {
-
-  case COM_PARSE_CMD:
-    if(buffer == COM_CMD_PATTERN || buffer == COM_CMD_CURSOR) {
-      parserState = COM_PARSE_SEP;
-      parserReceivedCommand = buffer;
-      parserReceivedBytes = 0;
-    }
-    break;
-
-  case COM_PARSE_SEP:
-
-    // We're awaiting a seperator here, if not, back to cmd
-    if(buffer == COM_CMD_SEPERATOR) {
-      parserState = COM_PARSE_PLOAD;
+  
+    case COM_PARSE_CMD:
+      if(buffer == COM_CMD_PATTERN || buffer == COM_CMD_CURSOR) {
+        parserState = COM_PARSE_SEP;
+        parserReceivedCommand = buffer;
+        parserReceivedBytes = 0;
+      }
       break;
-    }
-
-    parserState = COM_PARSE_CMD;
-    break;
-
-  case COM_PARSE_PLOAD:
-
-    if(buffer == COM_CMD_PLOAD_END) {
-      // Everything is read, execute command
-      parserReceivedPayload[parserReceivedBytes+1] = '\0';
-
-      executeCommand(parserReceivedCommand, parserReceivedPayload, parserReceivedBytes);
+  
+    case COM_PARSE_SEP:
+  
+      // We're awaiting a seperator here, if not, back to cmd
+      if(buffer == COM_CMD_SEPERATOR) {
+        parserState = COM_PARSE_PLOAD;
+        break;
+      }
+  
       parserState = COM_PARSE_CMD;
-
-      sendCommand(COM_CMD_RESPONSE, "OK");
       break;
-    }
-
-    parserReceivedPayload[parserReceivedBytes] = buffer;
-    parserReceivedBytes++;
-
-    break;        
+  
+    case COM_PARSE_PLOAD:
+  
+      if(buffer == COM_CMD_PLOAD_END) {
+        // Everything is read, execute command
+        parserReceivedPayload[parserReceivedBytes+1] = '\0';
+  
+        executeCommand(parserReceivedCommand, parserReceivedPayload, parserReceivedBytes);
+        parserState = COM_PARSE_CMD;
+  
+        sendCommand(COM_CMD_RESPONSE, "OK");
+        break;
+      }
+  
+      parserReceivedPayload[parserReceivedBytes] = buffer;
+      parserReceivedBytes++;
+  
+      break;        
   } 
 }
 
