@@ -86,7 +86,7 @@ void executeCommand(unsigned char cmd, char *payload, size_t length) {
     case COM_CMD_PATTERN:
   
       // Erase ALL THE data!
-      memset(knitPattern, 0, 255);
+      memset(knitPattern, 0, sizeof(knitPattern));
   
       for(unsigned char i = 0; i < length; i++) {
         knitPattern[i] = (payload[i] == '1')? 1 : 0;
@@ -124,6 +124,8 @@ void parserSerialStream() {
         parserState = COM_PARSE_SEP;
         parserReceivedCommand = buffer;
         parserReceivedBytes = 0;
+
+        memset(parserReceivedPayload, 0, sizeof(parserReceivedPayload));
       }
       break;
   
@@ -141,8 +143,6 @@ void parserSerialStream() {
     case COM_PARSE_PLOAD:
   
       if(buffer == COM_CMD_PLOAD_END) {
-        // Everything is read, execute command
-        parserReceivedPayload[parserReceivedBytes+1] = '\0';
   
         executeCommand(parserReceivedCommand, parserReceivedPayload, parserReceivedBytes);
         parserState = COM_PARSE_CMD;
