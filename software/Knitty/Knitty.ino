@@ -30,7 +30,7 @@ signed int currentCursorPosition = -15;
 signed int leftEndCursorPosition = 0;
 unsigned int currentPatternIndex = 0;
 
-unsigned char knitPattern[255] = {0};
+volatile unsigned char knitPattern[255] = {0};
 bool isKnitting = false;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -44,6 +44,7 @@ bool isKnitting = false;
 #define COM_CMD_RESPONSE     'R'
 #define COM_CMD_DIRECTION    'D'
 #define COM_CMD_DEBUG        'V'
+#define COM_CMD_NEW_PATTERN  'N'
 #define COM_CMD_SEPERATOR    ':'
 
 #define COM_CMD_PLOAD_END    '\n'
@@ -85,22 +86,22 @@ void executeCommand(unsigned char cmd, String payload) {
     case COM_CMD_PATTERN:
     
       // Erase old pattern
-      memset(knitPattern, 0, sizeof(knitPattern));
+     // memset(knitPattern, 0, sizeof(knitPattern));
 
       patternLength = payload.length();
-    
+   //sendCommand(COM_CMD_DEBUG, "patternLength:" + String((int)patternLength));
       for(unsigned char i = 0; i < patternLength; i++) {
         knitPattern[i] = (payload.charAt(i) == '1')? 1 : 0;
       }
       
-      sendCommand(COM_CMD_DEBUG, "Received Pattern: " + payload);
+     // sendCommand(COM_CMD_DEBUG, "Received Pattern: " + payload);
   
       break;
   
     case COM_CMD_CURSOR:
       currentCursorPosition = payload.toInt();
       
-      sendCommand(COM_CMD_DEBUG, "Received Pattern: " + payload);
+      //sendCommand(COM_CMD_DEBUG, "Received Pattern: " + payload);
       break;
   }
 }
@@ -169,16 +170,21 @@ void setNeedleByCursor(char cursorPosition) {
     return;
   }
 
-  if(currentDirection == DIRECTION_RIGHT_LEFT) {
+  if(currentDirection == DIRECTION_LEFT_RIGHT) {
     setNeedle(knitPattern[cursorPosition]);
   } 
-  else if(currentDirection == DIRECTION_LEFT_RIGHT) {
-    setNeedle(knitPattern[patternLength-cursorPosition]);
+  else if(currentDirection == DIRECTION_RIGHT_LEFT) {
+    setNeedle(knitPattern[patternLength-cursorPosition-1]);
   }
 } 
 
 void setNeedle(char state) {  
   digitalWrite(PIN_NEEDLE, state);
+ /* String debug = "needdle: " + String((int)state) +
+     " C: " + String((int)currentCursorPosition) +
+     " PI: " + String ( (int) currentPatternIndex );
+     
+  sendCommand(COM_CMD_DEBUG, debug);*/
 }
 
 void interruptPinChangeEncoder() {
@@ -201,37 +207,42 @@ void interruptPinChangeEncoder() {
   if((currentDirection == DIRECTION_RIGHT_LEFT && currentCursorPosition > 0) ||
     (currentDirection == DIRECTION_LEFT_RIGHT && currentCursorPosition <= leftEndCursorPosition)) {
 
-    if(currentPatternIndex >= patternLength-1) {
+    if(currentPatternIndex > patternLength) {
 
       setNeedle(0);
       currentPatternIndex = 0;
       isKnitting = false;
-
+      
+      //sendCommand(COM_CMD_NEW_PATTERN, "NewP");
+      
       sendCommand(COM_CMD_PATTERN_END, "1");
+      // sendCommand(COM_CMD_DEBUG, "pattern end");
 
       // Remember last cursor position to begin for the opposite direction
       if(currentDirection == DIRECTION_RIGHT_LEFT) {
-        leftEndCursorPosition = currentCursorPosition-1;
+        leftEndCursorPosition = currentCursorPosition-5; //cursor position differs from RTL to LTR
+        //sendCommand(COM_CMD_DEBUG, "LeftEndC:" + String((int)leftEndCursorPosition));
       }
 
     } 
     else {
 
-      // React on FALLING Edge for RTL, RISING for LTR
-      if((currentDirection == DIRECTION_RIGHT_LEFT && currentPinChangeValue == 0) ||
-        (currentDirection == DIRECTION_LEFT_RIGHT && currentPinChangeValue == 1) ) {
-        setNeedleByCursor(currentPatternIndex);
-        currentPatternIndex++;
-      }
-
-      isKnitting = true;
+       if(isKnitting == true) { 
+            // React on FALLING Edge for RTL, RISING for LTR
+            if((currentDirection == DIRECTION_RIGHT_LEFT && currentPinChangeValue == 0) ||
+              (currentDirection == DIRECTION_LEFT_RIGHT && currentPinChangeValue == 1) ) {
+              setNeedleByCursor(currentPatternIndex);
+              currentPatternIndex++;
+            }
+       }
+      
     }
   }
 
   if(lastDirection != currentDirection) {
     lastDirection = currentDirection;
     currentPatternIndex = 0;
-
+    isKnitting = true;
     if(currentDirection == DIRECTION_RIGHT_LEFT) {
       sendCommand(COM_CMD_DIRECTION, "RTL");
     } 
@@ -248,4 +259,5 @@ void interruptPinChangeIfdr() {
     sendCommand(COM_CMD_IFDR, "1");
   }
 }
+
 
