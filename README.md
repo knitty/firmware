@@ -10,6 +10,8 @@ The IFDR, CSENSE and CREF use an 10 KOhms pull-up resistor.
 * CREF is connected to PIN 4
 * SEL is connected to PIN 9
 
+An Arduino shield is currently under development. If it's ready it will appear inside the hardware/ directory.
+
 ## Software
 
 You can easily open the Knitty.ino file with the arduino software and flash it onto your arduino. Be aware that your arduino should use 5V instead of 3,3 Volts.
