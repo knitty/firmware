@@ -13,7 +13,7 @@
 #define PIN_IFDR      3         // Green
 #define PIN_CSENSE    2         // Yellow
 #define PIN_CREF      4         // White
-#define PIN_NEEDLE    9         // Blue,  Pattern
+#define PIN_NEEDLE    5         // Blue,  Pattern
 
 #define DIRECTION_UNKNOWN       0
 #define DIRECTION_LEFT_RIGHT   -1
