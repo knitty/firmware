@@ -4,16 +4,40 @@
 // Author: ptflea, schinken
 //
 
+//Servo
+#include <Servo.h>
+
+Servo servoColour12;  // create servo object to control a servo
+Servo servoColour34;
+
 #define INT_ENCODER 0
-#define INT_IFDR    1
+
 
 //////////////////////////////////////////////////////////////////////////////
 // General purpose definitions
 
-#define PIN_IFDR      3         // Green
+//Pin 3 unused
 #define PIN_CSENSE    2         // Yellow
 #define PIN_CREF      4         // White
-#define PIN_NEEDLE    5         // Blue,  Pattern
+#define PIN_NEEDLE_RTL    5         // Blue,  Pattern RTL
+#define PIN_NEEDLE_LTR    6         // ,  Pattern LTR
+#define PIN_BUTTON_1  7         // Button_1 (activate colour change)
+#define BUTTONDELAY   20        // delay for Button_1
+// PIN 8 and 9 are for the color change servos
+#define PIN_Eyelet_1  10        // Eyelet_1 status
+#define Eyelet_1_DELAY   100
+#define PIN_Eyelet_2  11        // Eyelet_2 status
+#define PIN_Eyelet_3  12        // Eyelet_3 status
+#define PIN_Eyelet_4  13        // Eyelet_4 status
+
+
+long buttonLastChecked = 0; // variable to limit the button getting checked every cycle
+int button_1_State = 0;     // status of button_1
+int button_1_Hold = 0; // toggle state of Button_1
+
+long eyelet_1_LastChecked = 0;
+int eyelet_1_State = 0;
+int eyelet_1_Hold = 0;
 
 #define DIRECTION_UNKNOWN       0
 #define DIRECTION_LEFT_RIGHT   -1
@@ -22,12 +46,21 @@
 char currentDirection = DIRECTION_UNKNOWN;
 char lastDirection = DIRECTION_UNKNOWN;
 
-signed int currentCursorPosition = -15;
-signed int leftEndCursorPosition = 0;
+signed int currentCursorPosition = 0;
 unsigned int currentPatternIndex = 0;
+signed int firstNeedle = 0;
+signed int offsetCarriage_RTL = 52;
+signed int offsetCarriage_LTR = 30;
 
-volatile unsigned char knitPattern[255] = {0};
+
+volatile unsigned char knitPattern[255] = {
+  0};
 bool isKnitting = false;
+
+volatile unsigned char passapCalibrateArray[400] = { 0 };
+signed int  passapCalibratePointer = 0;
+static unsigned char passaptestpatter[8] = {1, 1, 0, 1, 1, 0, 0, 0};
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Knitty Serial Protocol
@@ -36,12 +69,14 @@ bool isKnitting = false;
 #define COM_CMD_PATTERN      'P'
 #define COM_CMD_PATTERN_END  'E'
 #define COM_CMD_CURSOR       'C'
-#define COM_CMD_IFDR         'I'
 #define COM_CMD_RESPONSE     'R'
 #define COM_CMD_DIRECTION    'D'
 #define COM_CMD_DEBUG        'V'
 #define COM_CMD_NEW_PATTERN  'N'
+#define COM_CMD_FIRST_NEEDLE 'F'  //first needle of pattern from right
 #define COM_CMD_SEPERATOR    ':'
+
+#define COM_CMD_SERVO        'S'
 
 #define COM_CMD_PLOAD_END    '\n'
 
@@ -61,36 +96,86 @@ unsigned char patternLength = 0;
 void setup() {
   Serial.begin(115200);
 
+  // Button Input
+  pinMode(PIN_BUTTON_1, INPUT);
+
+  //Eylet Input
+  pinMode(PIN_Eyelet_1, INPUT);
+
+
   // Setup PHOTO SENSOR pin change interrupt
   pinMode(PIN_CSENSE, INPUT);
   pinMode(PIN_CREF, INPUT);
   attachInterrupt(INT_ENCODER, interruptPinChangeEncoder, CHANGE);
 
-  // Setup IFDR pin change interrupt
-  pinMode(PIN_IFDR, INPUT);
-  attachInterrupt(INT_IFDR, interruptPinChangeIfdr, FALLING);
-
-  // Setup Needle
-  pinMode(PIN_NEEDLE, OUTPUT);
-  digitalWrite(PIN_NEEDLE, LOW);
+  // Setup Needles
+  pinMode(PIN_NEEDLE_RTL, OUTPUT);
+  digitalWrite(PIN_NEEDLE_RTL, HIGH);
+  pinMode(PIN_NEEDLE_LTR, OUTPUT);
+  digitalWrite(PIN_NEEDLE_LTR, HIGH);
 
 }
 
 void executeCommand(unsigned char cmd, String payload) {
 
   switch(cmd) {
-    case COM_CMD_PATTERN:
+  case COM_CMD_PATTERN:
 
-      patternLength = payload.length();
-      for(unsigned char i = 0; i < patternLength; i++) {
-        knitPattern[i] = (payload.charAt(i) == '1')? 1 : 0;
-      }
+    patternLength = payload.length();
+    Serial.println(patternLength);
+    for(unsigned char i = 0; i < patternLength; i++) {
+      knitPattern[i] = (payload.charAt(i) == '1')? 1 : 0;
+      Serial.print(knitPattern[i]);
+    }
+    Serial.println();
 
+    break;
+
+  case COM_CMD_CURSOR:
+    currentCursorPosition = payload.toInt();
+    break;
+
+  case COM_CMD_FIRST_NEEDLE:
+    firstNeedle = payload.toInt()*2-2;
+    sendCommand(COM_CMD_RESPONSE, String(firstNeedle));
+    break;
+
+  case COM_CMD_SERVO:
+
+    switch(payload.toInt()) {
+    case 0: //no colour selected
+      servoColour12.write(90);
+      servoColour34.write(90);
       break;
-
-    case COM_CMD_CURSOR:
-      currentCursorPosition = payload.toInt();
+    case 1: //Color 1
+      servoColour12.write(70);
+      servoColour34.write(90);
       break;
+    case 2: //Color 2
+      servoColour12.write(115);
+      servoColour34.write(90);
+      break;
+    case 3: //Color 3
+      servoColour12.write(90);
+      servoColour34.write(70);
+      break;
+    case 4: //Color 4
+      servoColour12.write(90);
+      servoColour34.write(115);
+      break;
+    case 5: //Servo off
+      servoColour12.detach();
+      servoColour34.detach();
+      break;
+    case 6: //Servo on
+      servoColour12.attach(8);
+      servoColour34.attach(9);
+      break;
+    }
+
+    break;
+
+
   }
 }
 
@@ -111,65 +196,142 @@ void parserSerialStream() {
 
   switch(parserState) {
 
-    case COM_PARSE_CMD:
-      parserState = COM_PARSE_SEP;
-      parserReceivedCommand = buffer;
-      parserReceivedPayload = "";
+  case COM_PARSE_CMD:
+    parserState = COM_PARSE_SEP;
+    parserReceivedCommand = buffer;
+    parserReceivedPayload = "";
+    break;
+
+  case COM_PARSE_SEP:
+
+    // We're awaiting a seperator here, if not, back to cmd
+    if(buffer == COM_CMD_SEPERATOR) {
+      parserState = COM_PARSE_PLOAD;
       break;
+    }
 
-    case COM_PARSE_SEP:
+    parserState = COM_PARSE_CMD;
+    break;
 
-      // We're awaiting a seperator here, if not, back to cmd
-      if(buffer == COM_CMD_SEPERATOR) {
-        parserState = COM_PARSE_PLOAD;
-        break;
-      }
+  case COM_PARSE_PLOAD:
 
+    if(buffer == COM_CMD_PLOAD_END) {
+
+      executeCommand(parserReceivedCommand, parserReceivedPayload);
       parserState = COM_PARSE_CMD;
+
+      sendCommand(COM_CMD_RESPONSE, "P OK");
       break;
+    }
 
-    case COM_PARSE_PLOAD:
-
-      if(buffer == COM_CMD_PLOAD_END) {
-
-        executeCommand(parserReceivedCommand, parserReceivedPayload);
-        parserState = COM_PARSE_CMD;
-
-        sendCommand(COM_CMD_RESPONSE, "OK");
-        break;
-      }
-
-      parserReceivedPayload += buffer;
-      break;
+    parserReceivedPayload += buffer;
+    break;
   }
 }
 
 void loop() {
   parserSerialStream();
+
+  //check if button for colour change ist activated and send response to processing
+  button_1_State = digitalRead(PIN_BUTTON_1);
+
+  if( buttonLastChecked == 0 ) // see if this is the first time checking the buttons
+    buttonLastChecked = millis()+BUTTONDELAY;  // force a check this cycle
+  if( millis() - buttonLastChecked > BUTTONDELAY ) { // make sure a reasonable delay passed
+    if (button_1_State == HIGH) {
+      if (button_1_Hold == HIGH) {
+        // Send
+        sendCommand(COM_CMD_RESPONSE, "ON");
+        button_1_Hold = LOW;
+      }
+    } else if (button_1_Hold == LOW) {
+        // Send
+        sendCommand(COM_CMD_RESPONSE, "OFF");
+        button_1_Hold = HIGH;
+    }
+    buttonLastChecked = millis(); // reset the lastChecked value
+  }
+
+
+
+//  //check Eyelets
+//  eyelet_1_State = digitalRead(PIN_Eyelet_1);
+//
+//  if( eyelet_1_LastChecked == 0 ) // see if this is the first time checking the buttons
+//    eyelet_1_LastChecked = millis()+Eyelet_1_DELAY;  // force a check this cycle
+//  if( millis() - eyelet_1_LastChecked > Eyelet_1_DELAY ) { // make sure a reasonable delay passed
+//    if (eyelet_1_State == HIGH) {
+//      if (eyelet_1_Hold == HIGH) {
+//        // Send
+//        sendCommand(COM_CMD_RESPONSE, "Eyelet 1 OUT");
+//        eyelet_1_Hold = LOW;
+//      }
+//    }
+//    else {
+//      if (eyelet_1_Hold == LOW) {
+//        // Send
+//        sendCommand(COM_CMD_RESPONSE, "Eyelet 1 IN");
+//        eyelet_1_Hold = HIGH;
+//      }
+//    }
+//    eyelet_1_LastChecked = millis(); // reset the lastChecked value
+//  }
+
 }
 
-void setNeedleByCursor(char cursorPosition) {
+
+
+
+void setNeedleByCursor(int cursorPosition) {
 
   // Just to be sure that we never exceed the pattern
-  if(cursorPosition > patternLength-1 || cursorPosition < 0) {
-    return;
-  }
+  //  if(cursorPosition > patternLength-1 || cursorPosition < 0) {
+  //    return;
+  //  }
 
   if(currentDirection == DIRECTION_LEFT_RIGHT) {
-    setNeedle(knitPattern[cursorPosition]);
-  } else if(currentDirection == DIRECTION_RIGHT_LEFT) {
-    setNeedle(knitPattern[patternLength-cursorPosition-1]);
+    setNeedle_LTR(knitPattern[cursorPosition]);
+  }
+  else if(currentDirection == DIRECTION_RIGHT_LEFT) {
+    setNeedle_RTL(knitPattern[patternLength-cursorPosition-1]);
   }
 }
 
-void setNeedle(char state) {
-  digitalWrite(PIN_NEEDLE, state);
+
+
+void setNeedle_RTL(char state) {
+  //change state because the E6000 sets needle by 0
+  if(state==1){
+    state = 0;
+  } else {
+    state = 1;
+  }
+  digitalWrite(PIN_NEEDLE_RTL, state);
 }
+
+void setNeedle_LTR(char state) {
+  //change state because the E6000 sets needle by 0
+  if(state==1){
+    state = 0;
+  }
+  else
+  {
+    state = 1;
+  }
+  digitalWrite(PIN_NEEDLE_LTR, state);
+}
+
 
 void interruptPinChangeEncoder() {
 
   char currentPinChangeValue = digitalRead(PIN_CSENSE);
   char currentPinChangeOppositeValue = digitalRead(PIN_CREF);
+
+  //  Serial.print(String(0+currentPinChangeValue));
+  //  Serial.print("-");
+  //  Serial.print(String(0+currentPinChangeOppositeValue));
+  //  Serial.print("-");
+  //  Serial.println(String(currentCursorPosition));
 
   // Determine direction
   if(currentPinChangeValue == currentPinChangeOppositeValue) {
@@ -181,57 +343,71 @@ void interruptPinChangeEncoder() {
   // RTL = 1, LTR = -1
   currentCursorPosition += currentDirection; 
 
+
+
+
+  //debug cursorposition
+  //  if(currentCursorPosition==0){
+  //  sendCommand(COM_CMD_RESPONSE, String(currentCursorPosition));
+  ////sendCommand(COM_CMD_RESPONSE, String(firstNeedle));
+  //  }
+
   // Check if we're in range of our needles
-  if((currentDirection == DIRECTION_RIGHT_LEFT && currentCursorPosition > 0) ||
-    (currentDirection == DIRECTION_LEFT_RIGHT && currentCursorPosition <= leftEndCursorPosition)) {
+  if (currentCursorPosition >=-4){
+    if((currentDirection == DIRECTION_RIGHT_LEFT && currentCursorPosition > offsetCarriage_RTL + firstNeedle) ||
+      (currentDirection == DIRECTION_LEFT_RIGHT && currentCursorPosition - offsetCarriage_LTR  <= patternLength*2 + firstNeedle)) {
+      //sendCommand(COM_CMD_RESPONSE, String(currentPatternIndex));
+      if(currentPatternIndex > patternLength) {
 
-    if(currentPatternIndex > patternLength) {
+        setNeedle_RTL(0);
+        setNeedle_LTR(0);
+        currentPatternIndex = 0;
+        isKnitting = false;
 
-      setNeedle(0);
-      currentPatternIndex = 0;
-      isKnitting = false;
+        sendCommand(COM_CMD_PATTERN_END, "1");
 
-      sendCommand(COM_CMD_PATTERN_END, "1");
 
-      // Remember last cursor position to begin for the opposite direction
-      if(currentDirection == DIRECTION_RIGHT_LEFT) {
-        //cursor position differs from RTL to LTR
-        leftEndCursorPosition = currentCursorPosition-5;
+      } else if(isKnitting == true) {
+          // React on FALLING Edge
+          if(currentPinChangeValue == 1)  {
+            setNeedleByCursor(currentPatternIndex);
+            currentPatternIndex++;
+          }
       }
-
-    } else {
-
-      if(isKnitting == true) {
-        // React on FALLING Edge for RTL, RISING for LTR
-        if((currentDirection == DIRECTION_RIGHT_LEFT && currentPinChangeValue == 0) ||
-           (currentDirection == DIRECTION_LEFT_RIGHT && currentPinChangeValue == 1) ) {
-          setNeedleByCursor(currentPatternIndex);
-          currentPatternIndex++;
-        }
-      }
-
     }
   }
-
   if(lastDirection != currentDirection) {
     lastDirection = currentDirection;
     currentPatternIndex = 0;
     isKnitting = true;
     if(currentDirection == DIRECTION_RIGHT_LEFT) {
-      sendCommand(COM_CMD_DIRECTION, "RTL");
+      //sendCommand(COM_CMD_DIRECTION, "RTL");
     } 
     else {
-      sendCommand(COM_CMD_DIRECTION, "LTR");
+      // sendCommand(COM_CMD_DIRECTION, "LTR");
     }
   }
-}
 
-// We only use the IFDR to determine if we can send the pattern
-// for the next line.
-void interruptPinChangeIfdr() {
-  if(isKnitting == false) {
-    sendCommand(COM_CMD_IFDR, "1");
+  //AutoCalibrate
+  passapCalibrateArray[passapCalibratePointer] = currentPinChangeValue;
+  passapCalibrateArray[passapCalibratePointer+1] = currentPinChangeOppositeValue;
+
+  if (passapCalibratePointer > 8){ // 16
+    // read last 16 digits of passapCalibrateArray
+    int found = 1;
+    for (int i=0; i<8; i++){
+      if (passapCalibrateArray[passapCalibratePointer-i] !=
+          passaptestpatter[i]) {
+        found = 0;
+        break;
+      }
+    }
+    if (found){
+      Serial.println("Starting new line");
+      //calibrate
+      currentCursorPosition = 2;
+      passapCalibratePointer = 0;
+    }
   }
+  passapCalibratePointer = passapCalibratePointer +2;
 }
-
-
