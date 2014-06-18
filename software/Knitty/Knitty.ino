@@ -90,7 +90,7 @@ unsigned char parserState = COM_PARSE_CMD;
 
 unsigned char parserReceivedCommand = 0;
 String parserReceivedPayload = "";
-
+int parserPatternPos = 0;
 unsigned char patternLength = 0;
 
 void setup() {
@@ -120,15 +120,8 @@ void executeCommand(unsigned char cmd, String payload) {
 
   switch(cmd) {
   case COM_CMD_PATTERN:
-
-    patternLength = payload.length();
-    Serial.println(patternLength);
-    for(unsigned char i = 0; i < patternLength; i++) {
-      knitPattern[i] = (payload.charAt(i) == '1')? 1 : 0;
-      Serial.print(knitPattern[i]);
-    }
-    Serial.println();
-
+    Serial.print("P ");
+    Serial.println(parserPatternPos);
     break;
 
   case COM_CMD_CURSOR:
@@ -200,6 +193,7 @@ void parserSerialStream() {
     parserState = COM_PARSE_SEP;
     parserReceivedCommand = buffer;
     parserReceivedPayload = "";
+    parserPatternPos = 0;
     break;
 
   case COM_PARSE_SEP:
@@ -224,7 +218,12 @@ void parserSerialStream() {
       break;
     }
 
-    parserReceivedPayload += buffer;
+    if (parserReceivedCommand == COM_CMD_PATTERN) {
+        knitPattern[parserPatternPos] = (buffer == '1')? 1 : 0;
+        parserPatternPos += 1;
+    } else {
+        parserReceivedPayload += buffer;
+    }
     break;
   }
 }
