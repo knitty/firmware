@@ -57,7 +57,7 @@ volatile unsigned char knitPattern[255] = {
   0};
 bool isKnitting = false;
 
-volatile unsigned char passapCalibrateArray[400] = { 0 };
+volatile unsigned char passapCalibrateArray[8] = { 0 };
 signed int  passapCalibratePointer = 0;
 static unsigned char passaptestpatter[8] = {1, 1, 0, 1, 1, 0, 0, 0};
 
@@ -388,14 +388,14 @@ void interruptPinChangeEncoder() {
   }
 
   //AutoCalibrate
-  passapCalibrateArray[passapCalibratePointer] = currentPinChangeValue;
-  passapCalibrateArray[passapCalibratePointer+1] = currentPinChangeOppositeValue;
+  passapCalibrateArray[passapCalibratePointer & 0x07] = currentPinChangeValue;
+  passapCalibrateArray[(passapCalibratePointer+1) & 0x07] = currentPinChangeOppositeValue;
 
   if (passapCalibratePointer > 8){ // 16
     // read last 16 digits of passapCalibrateArray
     int found = 1;
     for (int i=0; i<8; i++){
-      if (passapCalibrateArray[passapCalibratePointer-i] !=
+      if (passapCalibrateArray[(passapCalibratePointer-i) & 0x07] !=
           passaptestpatter[i]) {
         found = 0;
         break;
