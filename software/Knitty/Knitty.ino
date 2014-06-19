@@ -396,7 +396,7 @@ void interruptPinChangeEncoder() {
     // read last 16 digits of passapCalibrateArray
     int found = 1;
     for (int i=0; i<8; i++){
-      if (passapCalibrateArray[(passapCalibratePointer-i) & 0x07] !=
+      if (passapCalibrateArray[(passapCalibratePointer-i+2) & 0x07] !=
           passaptestpatter[i]) {
         found = 0;
         break;
@@ -405,7 +405,7 @@ void interruptPinChangeEncoder() {
     if (found){
       Serial.println("Starting new line");
       //calibrate
-      currentCursorPosition = 2;
+      currentCursorPosition = 0;
       passapCalibratePointer = 0;
     }
   }
