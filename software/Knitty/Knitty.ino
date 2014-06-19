@@ -47,6 +47,7 @@ char currentDirection = DIRECTION_UNKNOWN;
 char lastDirection = DIRECTION_UNKNOWN;
 
 signed int currentCursorPosition = 0;
+unsigned long lastCursorChange = 0;
 unsigned int currentPatternIndex = 0;
 signed int firstNeedle = 0;
 signed int offsetCarriage_RTL = 52;
@@ -323,6 +324,13 @@ void setNeedle_LTR(char state) {
 
 
 void interruptPinChangeEncoder() {
+
+  unsigned long now = micros();
+  if (now - lastCursorChange < 1000) {
+    lastCursorChange = now;
+    return;
+  }
+  lastCursorChange = now;
 
   char currentPinChangeValue = digitalRead(PIN_CSENSE);
   char currentPinChangeOppositeValue = digitalRead(PIN_CREF);
