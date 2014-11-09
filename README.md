@@ -2,21 +2,22 @@
 
 ## Interface
 
-Currently we use a simple connection between our arduino and our superba 624 knitting machine. We only use SEL, IFDR, CSENSE and CREF (and of course GND).
-The IFDR, CSENSE and CREF use an 10 KOhms pull-up resistor.
+## Superba/Singer 624/9000/Memo II
 
-* CSENSE is connected to Interupt 0 (PIN 2)
-* IFDR is connected to Interrupt 1 (PIN 3)
-* CREF is connected to PIN 4
-* SEL is connected to PIN 5
+![Superba/Singer](https://raw.githubusercontent.com/knitty/firmware/master/hardware/Superba_Singer_Schaltplan_Knitty.svg "Superba/Singer")
 
-An Arduino shield is currently under development. If it's ready it will appear inside the hardware/ directory. It's also possible to use the Vin from the Arduino, if you connect the power supply to your arduino.
+See more at our project page https://www.hackerspace-bamberg.de/Singer_Superba (in German)
 
-![Hardware Example](https://raw.githubusercontent.com/knitty/hardware-interface/master/hardware/example.png "Example Hardware")
+## Passap/Pfaff E6000
+
+![Passap/Pfaff](https://raw.githubusercontent.com/knitty/firmware/master/hardware/Passap_Pfaff_Schaltplan_Knitty.svg "Passap/Pfaff")
+
+See more at our project page https://www.hackerspace-bamberg.de/Passap_pfaff_e6000 (in German)
+Here you find the instructions for the Memo II
 
 ## Software
 
-You can easily open the Knitty.ino file with the arduino software and flash it onto your arduino. Be aware that your arduino should use 5V instead of 3,3 Volts.
+You can easily open the Knitty_Superba.ino or Knitty_Passap.ino file with the arduino software and flash it onto your arduino. Be aware that your arduino should use 5V instead of 3,3 Volts.
 
 ## Attribution
 
