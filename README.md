@@ -7,13 +7,14 @@
 ![Superba/Singer](https://www.hackerspace-bamberg.de/images/3/3d/Superba_Singer_Schaltplan.svg "Superba/Singer")
 
 See more at our project page https://www.hackerspace-bamberg.de/Singer_Superba (in German)
+Here you find the instructions for the Memo II
 
 ## Passap/Pfaff E6000
 
 ![Passap/Pfaff](https://www.hackerspace-bamberg.de/images/thumb/1/19/Passap_Pfaff_Schaltplan.svg/800px-Passap_Pfaff_Schaltplan.svg.png "Passap/Pfaff")
 
 See more at our project page https://www.hackerspace-bamberg.de/Passap_pfaff_e6000 (in German)
-Here you find the instructions for the Memo II
+
 
 ## Software
 
