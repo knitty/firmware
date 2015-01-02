@@ -2,6 +2,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 // Knitty Project
+// Arduino Firmware for Passap E6000
 //
 // Author: ptflea, schinken, 
 //
@@ -31,24 +32,7 @@ Servo servoColour34;
 #define PIN_NEEDLE_RTL_BACK 11      //   Pattern RTL
 #define PIN_NEEDLE_LTR_BACK 10      //   Pattern LTR
 
-
-#define PIN_BUTTON_1 13// 7         // Button_1 (activate colour change)
-#define BUTTONDELAY   20        // delay for Button_1
 // PIN 8 and 9 are for the color change servos
-#define PIN_Eyelet_1  10        // Eyelet_1 status
-#define Eyelet_1_DELAY   100
-#define PIN_Eyelet_2  11        // Eyelet_2 status
-#define PIN_Eyelet_3  12        // Eyelet_3 status
-#define PIN_Eyelet_4  13        // Eyelet_4 status
-
-
-long buttonLastChecked = 0; // variable to limit the button getting checked every cycle
-int button_1_State = 0;     // status of button_1
-int button_1_Hold = 0; // toggle state of Button_1
-
-long eyelet_1_LastChecked = 0;
-int eyelet_1_State = 0;
-int eyelet_1_Hold = 0;
 
 #define DIRECTION_UNKNOWN       0
 #define DIRECTION_LEFT_RIGHT   -1
@@ -70,37 +54,44 @@ signed int currentCursorPosition = 0;
 unsigned long lastCursorChange = 0;
 unsigned int currentPatternIndex = 0;
 signed int firstNeedle = 0;
-signed int offsetCarriage_RTL = 52;
-signed int offsetCarriage_LTR = 30;
+signed int offsetCarriage_RTL = 53;
+signed int offsetCarriage_LTR = 29;
 
 signed int currentCursorPosition_back = 0;
 unsigned long lastCursorChange_back = 0;
 unsigned int currentPatternIndex_back = 0;
-signed int firstNeedle_back = 0;
-signed int offsetCarriage_RTL_back = 52;
-signed int offsetCarriage_LTR_back = 31;
+//signed int firstNeedle_back = 0;
+signed int offsetCarriage_RTL_back = 50;
+signed int offsetCarriage_LTR_back = 27;
 
-volatile unsigned char knitPattern[255] = { 
+int knitPattern[255] = { 
   0 };
-volatile unsigned char knitPattern_back[255] = { 
+int knitPattern_back[255] = { 
   0 };
 
-bool isKnitting = false;
 
-volatile unsigned char passapCalibrateArray[8] = { 
+int passapCalibrateArray[8] = { 
   0 };
 signed int  passapCalibratePointer = 0;
-static unsigned char passaptestpattern[8] = { 1, 1, 0, 1, 1, 0, 0, 0};
+static unsigned char passaptestpattern[8] = { 
+  1, 1, 0, 1, 1, 0, 0, 0};
 
-volatile unsigned char passapCalibrateArray_back[8] = { 
+int passapCalibrateArray_back[8] = { 
   0 };
 signed int  passapCalibratePointer_back = 0;
 //static unsigned char passaptestpattern_back[8] = { 1, 1, 0, 1, 1, 0, 0, 0};
-static unsigned char passaptestpattern_back[8] = { 1, 0, 0, 1, 1, 1, 0, 1};
+static unsigned char passaptestpattern_back[8] = { 
+  1, 0, 0, 1, 1, 1, 0, 1};
 //static unsigned char passaptestpattern_back[8] = {  0, 0, 1, 1, 0, 1, 1, 1};
 
 
 
+char currentPinChangeValue = 0;
+char currentPinChangeOppositeValue = 0;
+char currentPinChangeValue_back = 0;
+char currentPinChangeOppositeValue_back = 0;
+signed int currentCursorPositionLast = 0;
+signed int currentCursorPositionLast_back = 0;
 //////////////////////////////////////////////////////////////////////////////
 // Knitty Serial Protocol
 
@@ -115,6 +106,7 @@ static unsigned char passaptestpattern_back[8] = { 1, 0, 0, 1, 1, 1, 0, 1};
 #define COM_CMD_NEW_PATTERN  'N'
 #define COM_CMD_FIRST_NEEDLE 'F'  //first needle of pattern from right
 #define COM_CMD_SEPERATOR    ':'
+#define COM_CMD_STATUS       'T'
 
 #define COM_CMD_SERVO        'S'
 
@@ -135,14 +127,8 @@ unsigned char patternLengthBack = 0;
 
 void setup() {
   Serial.begin(115200);
+  //Serial.begin(9600);
   sendCommand(COM_CMD_RESPONSE, "up and running");
-
-  // Button Input
-  pinMode(PIN_BUTTON_1, INPUT);
-
-  //Eylet Input
-  pinMode(PIN_Eyelet_1, INPUT);
-
 
   // Setup PHOTO SENSOR pin change interrupt
   pinMode(PIN_CSENSE, INPUT_PULLUP);
@@ -166,13 +152,20 @@ void setup() {
   digitalWrite(PIN_NEEDLE_LTR_BACK, HIGH);
 }
 
+void loop() {
+  parserSerialStream();
+  patternFront();
+  patternBack();
+}
+
+
 void executeCommand(unsigned char cmd, String payload) {
 
   switch(cmd) {
   case COM_CMD_PATTERN:
     //Serial.print("P ");
     //Serial.println(patternLength);
-   // sendCommand(COM_CMD_RESPONSE, "PatternLength: " + String(patternLength));
+    // sendCommand(COM_CMD_RESPONSE, "PatternLength: " + String(patternLength));
     break;
 
   case COM_CMD_PATTERN_BACK:
@@ -187,8 +180,23 @@ void executeCommand(unsigned char cmd, String payload) {
 
   case COM_CMD_FIRST_NEEDLE:
     firstNeedle = payload.toInt()*2-2;
-    
+
     sendCommand(COM_CMD_RESPONSE, "FirstNeedle: " + String(firstNeedle));
+    break;
+
+  case COM_CMD_STATUS:
+    sendCommand(COM_CMD_RESPONSE, "-------------------------");
+    sendCommand(COM_CMD_RESPONSE, "Cursorposition: " + String(currentCursorPosition));
+    sendCommand(COM_CMD_RESPONSE,"PatternIndex: " + String(currentPatternIndex) );
+    if(currentDirection == DIRECTION_RIGHT_LEFT) {
+      sendCommand(COM_CMD_DIRECTION, "RTL");
+    } 
+    else {
+      sendCommand(COM_CMD_DIRECTION, "LTR");
+    }
+    sendCommand(COM_CMD_RESPONSE, "-------------------------");
+
+
     break;
 
   case COM_CMD_SERVO:
@@ -254,7 +262,7 @@ void parserSerialStream() {
     if (buffer == COM_CMD_PATTERN) {
       patternLength = 0;
     }
-    
+
     if (buffer == COM_CMD_PATTERN_BACK) {
       patternLengthBack = 0;
     }
@@ -278,7 +286,7 @@ void parserSerialStream() {
       executeCommand(parserReceivedCommand, parserReceivedPayload);
       parserState = COM_PARSE_CMD;
 
-      sendCommand(COM_CMD_RESPONSE, "Recieved");
+      ////sendCommand(COM_CMD_RESPONSE, "Received");
       break;
     }
 
@@ -287,138 +295,86 @@ void parserSerialStream() {
       knitPattern[patternLength] = (buffer == '0')? 1 : 0;
       //reverse pattern
       //knitPattern_back[patternLength] = (buffer == '1')? 1 : 0;
-             
-     // Serial.println(String(knitPattern_back[patternLength])+String(patternLength));
+
+      // Serial.println(String(knitPattern_back[patternLength])+String(patternLength));
       patternLength += 1;
     } 
     else if (parserReceivedCommand == COM_CMD_PATTERN_BACK) {
       //Change state because the E6000 set the needle at '0'
       knitPattern_back[patternLengthBack] = (buffer == '0')? 1 : 0;
-     //Serial.println(String(knitPattern_back[patternLength])+String(patternLength));
+      //Serial.println(String(knitPattern_back[patternLength])+String(patternLength));
       patternLengthBack += 1;
     } 
     else {
       parserReceivedPayload += buffer;
     }
-    
+
     break;
   }
 }
 
 
-void loop() {
-  parserSerialStream();
-}
-
-
-void setNeedleByCursor(int currentPatternIndexSet) {
-
-  if(currentDirection == DIRECTION_LEFT_RIGHT) {
-        if (patternLength <= currentPatternIndexSet){
-         setNeedle_LTR(1);
-       //  Serial.println("StateLTR:lastNeedle");
-        }
-         else {
-      //  Serial.println("StateLTR:"+String(knitPattern_back[currentPatternIndexSet_back])+"-"+String(currentPatternIndexSet_back));
-        setNeedle_LTR(knitPattern[currentPatternIndexSet]);
-         }
-  }
-  else if(currentDirection == DIRECTION_RIGHT_LEFT) {
-        if (patternLength-currentPatternIndexSet-1 < 0){
-              setNeedle_RTL(1);
-        // Serial.println("StateRTL:lastNeedle");
-        }
-       else{ 
-       // Serial.println("StateRTL:"+String(knitPattern_back[patternLength-currentPatternIndexSet_back-1])+"-"+String(patternLength-currentPatternIndexSet_back-1));
-        setNeedle_RTL(knitPattern[patternLength-currentPatternIndexSet-1]);
-       }
-  }
-//  if(currentDirection == DIRECTION_LEFT_RIGHT) {
-//    setNeedle_LTR(knitPattern[currentPatternIndexSet]);
-//  }
-//  else if(currentDirection == DIRECTION_RIGHT_LEFT) {
-//    setNeedle_RTL(knitPattern[patternLength-currentPatternIndexSet-1]);
-//  }
-}
-
-void setNeedleByCursor_back(int currentPatternIndexSet_back) {
-
-  // Just to be sure that we never exceed the pattern
-  //  if(cursorPosition > patternLength-1 || cursorPosition < 0) {
-  //    return;
-  //  }
-
-  if(currentDirection_back == DIRECTION_LEFT_RIGHT) {
-        if (patternLength <= currentPatternIndexSet_back){
-         setNeedle_LTR_back(1);
-       //  Serial.println("StateLTR:lastNeedle");
-        }
-         else {
-      //  Serial.println("StateLTR:"+String(knitPattern_back[currentPatternIndexSet_back])+"-"+String(currentPatternIndexSet_back));
-        setNeedle_LTR_back(knitPattern_back[currentPatternIndexSet_back]);
-         }
-  }
-  else if(currentDirection_back == DIRECTION_RIGHT_LEFT) {
-        if (patternLength-currentPatternIndexSet_back-1 < 0){
-              setNeedle_RTL_back(1);
-        // Serial.println("StateRTL:lastNeedle");
-        }
-       else{ 
-       // Serial.println("StateRTL:"+String(knitPattern_back[patternLength-currentPatternIndexSet_back-1])+"-"+String(patternLength-currentPatternIndexSet_back-1));
-        setNeedle_RTL_back(knitPattern_back[patternLength-currentPatternIndexSet_back-1]);
-       }
-  }
-}
-
-
 void setNeedle_RTL(char state) {
-  //change state because the E6000 sets needle by 0
-  //  Serial.print("-");
-  //  Serial.print(String(0+state));
-//  if(state==1){
-//    state = 0;
-//  } 
-//  else {
-//    state = 1;
-//  }
+  //Attention E6000 sets needle by 0
   digitalWrite(PIN_NEEDLE_RTL, state);
 }
 
 void setNeedle_RTL_back(char state) {
-  //change state because the E6000 sets needle by 0
-//  if(state==1){
-//    state = 0;
-//  } 
-//  else {
-//    state = 1;
-//  }
+  //Attention E6000 sets needle by 0
   digitalWrite(PIN_NEEDLE_RTL_BACK, state);
 }
 
 void setNeedle_LTR(char state) {
-  //change state because the E6000 sets needle by 0
-//  if(state==1){
-//    state = 0;
-//  }
-//  else
-//  {
-//    state = 1;
-//  }
+  //Attention E6000 sets needle by 0
   digitalWrite(PIN_NEEDLE_LTR, state);
 }
 
 void setNeedle_LTR_back(char state) {
-  //change state because the E6000 sets needle by 0
-//  if(state==1){
-//    state = 0;
-//  }
-//  else
-//  {
-//    state = 1;
-//  }
+  //Attention E6000 sets needle by 0
   digitalWrite(PIN_NEEDLE_LTR_BACK, state);
 }
 
+void patternFront(){
+
+  // react only if there is new cursorposition
+  if (currentCursorPositionLast != currentCursorPosition){
+    
+    //RTL
+    if (currentDirection == DIRECTION_RIGHT_LEFT){
+      int patternPositionRTL = currentCursorPosition  - (firstNeedle+offsetCarriage_RTL);
+      //set needles in absolute position
+      if (patternPositionRTL >0 && patternPositionRTL <= patternLength*2){
+        setNeedle_RTL(knitPattern[((patternLength*2-patternPositionRTL)/2)]);
+      }
+      else{
+        setNeedle_RTL(1);
+      }
+      //send pattern End
+      if (patternPositionRTL == patternLength*2+1 ){
+        sendCommand(COM_CMD_PATTERN_END, "1");
+      }
+    }
+
+    //LTR
+    if (currentDirection == DIRECTION_LEFT_RIGHT){
+
+      int patternPositionLTR = currentCursorPosition  - (firstNeedle+offsetCarriage_LTR);
+      if (patternPositionLTR >0 && patternPositionLTR <= patternLength*2){
+        setNeedle_LTR(knitPattern[((patternLength*2-patternPositionLTR)/2)]);
+      }
+      else{
+        setNeedle_LTR(1);
+      }
+      //send pattern End
+      if (patternPositionLTR == 0){
+        sendCommand(COM_CMD_PATTERN_END, "1");
+      }
+    }
+
+    //store last CursorPosition
+    currentCursorPositionLast = currentCursorPosition;
+  }
+}
 
 void interruptPinChangeEncoder() {
 
@@ -429,8 +385,8 @@ void interruptPinChangeEncoder() {
   }
   lastCursorChange = now;
 
-  char currentPinChangeValue = digitalRead(PIN_CSENSE);
-  char currentPinChangeOppositeValue = digitalRead(PIN_CREF);
+  currentPinChangeValue = digitalRead(PIN_CSENSE);
+  currentPinChangeOppositeValue = digitalRead(PIN_CREF);
 
   //  Serial.print(String(0+currentPinChangeValue));
   //  Serial.print("-");
@@ -447,65 +403,6 @@ void interruptPinChangeEncoder() {
   // RTL = 1, LTR = -1
   currentCursorPosition += currentDirection; 
 
-  // Serial.print(String(currentPatternIndex));
-  // Serial.print("-");
-  // Serial.print(String(currentCursorPosition));
-
-
-
-  //debug cursorposition
-  //  if(currentCursorPosition==0){
-  //  sendCommand(COM_CMD_RESPONSE, String(currentCursorPosition));
-  ////sendCommand(COM_CMD_RESPONSE, String(firstNeedle));
-  //  }
-
-
-  if (currentCursorPosition >20 && currentCursorPosition < 420  ){   // Check if we're in range of our needles
-    if((currentDirection == DIRECTION_RIGHT_LEFT && currentCursorPosition > offsetCarriage_RTL + firstNeedle) ||
-      (currentDirection == DIRECTION_LEFT_RIGHT && currentCursorPosition - offsetCarriage_LTR  <= patternLength*2 + firstNeedle)) {
-      //sendCommand(COM_CMD_RESPONSE, String(currentPatternIndex));
-      if(currentPatternIndex > patternLength) {
-
-        //Set to '1' because the E6000 sets needle by 0
-        setNeedle_RTL(1);
-        setNeedle_LTR(1);
-        currentPatternIndex = 0;
-        isKnitting = false;
-        
-        sendCommand(COM_CMD_PATTERN_END, "1");
-      } 
-      else if(isKnitting == true) {
-        //        Serial.print(String(1+currentDirection));
-        //        Serial.print("-");
-        //        Serial.print(String(currentCursorPosition));
-        //        Serial.print("-");
-        //        Serial.println(String(offsetCarriage_RTL + firstNeedle));
-
-
-        // React on FALLING Edge     
-        if(currentPinChangeValue == 1)  {
-          setNeedleByCursor(currentPatternIndex);
-          currentPatternIndex++;
-        }
-      }
-    }
-  }
-
-  // Serial.println();
-
-  if (currentCursorPosition >30 && currentCursorPosition < 420  ){ //don't check if not in needle range
-    if(lastDirection != currentDirection) {
-      lastDirection = currentDirection;
-      currentPatternIndex = 0;
-      isKnitting = true;
-      if(currentDirection == DIRECTION_RIGHT_LEFT) {
-        sendCommand(COM_CMD_DIRECTION, "RTL");
-      } 
-      else {
-        sendCommand(COM_CMD_DIRECTION, "LTR");
-      }
-    }
-  }
 
   //AutoCalibrate
   passapCalibrateArray[passapCalibratePointer & 0x07] = currentPinChangeValue;
@@ -522,7 +419,7 @@ void interruptPinChangeEncoder() {
       }
     }
     if (found){
-      //sendCommand(COM_CMD_RESPONSE, "Calibrate");
+      sendCommand(COM_CMD_RESPONSE, "fc");
       //calibrate
       currentCursorPosition = -2;
       passapCalibratePointer = 0;
@@ -531,6 +428,47 @@ void interruptPinChangeEncoder() {
   passapCalibratePointer = passapCalibratePointer +2;
 }
 
+void patternBack(){
+   // react only if there is new cursorposition
+  if (currentCursorPositionLast_back != currentCursorPosition_back){
+    
+    //RTL
+    if (currentDirection_back == DIRECTION_RIGHT_LEFT){
+      int patternPositionRTL_back = currentCursorPosition_back  - (firstNeedle+offsetCarriage_RTL_back);
+      //set needles in absolute position
+      if (patternPositionRTL_back >0 && patternPositionRTL_back <= patternLength*2){
+        setNeedle_RTL_back(knitPattern_back[((patternLength*2-patternPositionRTL_back)/2)]);
+      }
+      else{
+        setNeedle_RTL_back(1);
+      }
+//      //send pattern End
+//      if (patternPositionRTL_back == patternLength*2+1 ){
+//        sendCommand(COM_CMD_PATTERN_END_back, "1");
+//      }
+    }
+
+    //LTR
+    if (currentDirection_back == DIRECTION_LEFT_RIGHT){
+
+      int patternPositionLTR_back = currentCursorPosition_back  - (firstNeedle+offsetCarriage_LTR_back);
+      if (patternPositionLTR_back >0 && patternPositionLTR_back <= patternLength*2){
+        setNeedle_LTR_back(knitPattern_back[((patternLength*2-patternPositionLTR_back)/2)]);
+      }
+      else{
+        setNeedle_LTR_back(1);
+      }
+//      //send pattern End
+//      if (patternPositionLTR_back == 0){
+//        sendCommand(COM_CMD_PATTERN_END, "1");
+//      }
+    }
+
+    //store last CursorPosition
+    currentCursorPositionLast_back = currentCursorPosition_back;
+  }
+
+}
 
 
 void interruptPinChangeEncoder_back() {
@@ -542,94 +480,21 @@ void interruptPinChangeEncoder_back() {
   }
   lastCursorChange_back = now;
 
-  char currentPinChangeValue_back = digitalRead(PIN_CSENSE_BACK);
-  char currentPinChangeOppositeValue_back = digitalRead(PIN_CREF_BACK);
-
-//    Serial.print(String(0+currentPinChangeValue_back));
-//    Serial.print("-");
-//    Serial.println(String(0+currentPinChangeOppositeValue_back));
+  currentPinChangeValue_back = digitalRead(PIN_CSENSE_BACK);
+  currentPinChangeOppositeValue_back = digitalRead(PIN_CREF_BACK);
 
   // Determine direction
   if(currentPinChangeValue_back == currentPinChangeOppositeValue_back) {
-  //    currentDirection_back = DIRECTION_LEFT_RIGHT;
-  currentDirection_back = DIRECTION_RIGHT_LEFT;
+    //    currentDirection_back = DIRECTION_LEFT_RIGHT;
+    currentDirection_back = DIRECTION_RIGHT_LEFT;
   } 
   else {
-//      currentDirection_back = DIRECTION_RIGHT_LEFT;
+    //      currentDirection_back = DIRECTION_RIGHT_LEFT;
     currentDirection_back = DIRECTION_LEFT_RIGHT;
   }
 
   // RTL = 1, LTR = -1
   currentCursorPosition_back += currentDirection_back; 
-
-//   Serial.print(String(currentPatternIndex_back));
-//   Serial.print("-");
-//   Serial.print(String(currentCursorPosition_back));
-
-
-
-  //debug cursorposition
-  //  if(currentCursorPosition==0){
-  //  sendCommand(COM_CMD_RESPONSE, String(currentCursorPosition));
-  ////sendCommand(COM_CMD_RESPONSE, String(firstNeedle));
-  //  }
-
-
-  if (currentCursorPosition_back >20 && currentCursorPosition_back < 420  ){   // Check if we're in range of our needles
-    if((currentDirection_back == DIRECTION_RIGHT_LEFT && currentCursorPosition_back > offsetCarriage_RTL_back + firstNeedle) ||
-      (currentDirection_back == DIRECTION_LEFT_RIGHT && currentCursorPosition_back - offsetCarriage_LTR_back  <= patternLength*2 + firstNeedle)) {
-      //Serial.println("CPI"+String(currentPatternIndex_back));
-      if(currentPatternIndex_back > patternLength) {
-
-        //Set to '1' because the E6000 sets needle by 0
-        setNeedle_RTL_back(1);
-        setNeedle_LTR_back(1);
-        currentPatternIndex_back = 0;
-        //isKnitting = false;
-
-       // sendCommand(COM_CMD_PATTERN_END, "1");
-      } 
-      else if(isKnitting == true) {
-//                Serial.print(String(1+currentDirection_back));
-//                Serial.print("-");
-//                Serial.print(String(currentCursorPosition_back));
-//                Serial.print("-");
-//                Serial.println(String(offsetCarriage_RTL_back + firstNeedle));
-
-
-//        // React on FALLING/RAISING edge depending on direction  
-//       if (currentDirection_back == DIRECTION_RIGHT_LEFT){
-//       reactOnEdge_back = 1;
-//       }
-//       else{
-//       reactOnEdge_back = 0;
-//       }
-       
-        
-        if(currentPinChangeValue_back == 1)  {
-          setNeedleByCursor_back(currentPatternIndex_back);
-         // Serial.println("PI: "+String(currentPatternIndex_back));
-          currentPatternIndex_back++;
-        }
-      }
-    }
-  }
-
-  // Serial.println();
-
-  if (currentCursorPosition_back >30 && currentCursorPosition_back < 420  ){ //don't check if not in needle range
-    if(lastDirection_back != currentDirection_back) {
-      lastDirection_back = currentDirection_back;
-      currentPatternIndex_back = 0;
-      //isKnitting = true;
-      if(currentDirection_back == DIRECTION_RIGHT_LEFT) {
-        sendCommand(COM_CMD_DIRECTION, "RTL_back");
-      } 
-      else {
-        sendCommand(COM_CMD_DIRECTION, "LTR_back");
-      }
-    }
-  }
 
   //AutoCalibrate
   passapCalibrateArray_back[passapCalibratePointer_back & 0x07] = currentPinChangeValue_back;
@@ -646,14 +511,28 @@ void interruptPinChangeEncoder_back() {
       }
     }
     if (found){
-      //sendCommand(COM_CMD_RESPONSE, "Calibrate_back");
+      sendCommand(COM_CMD_RESPONSE, "bc");
       //calibrate
-      currentCursorPosition_back = 1;
+      currentCursorPosition_back = -2;
       passapCalibratePointer_back = 0;
     }
   }
   passapCalibratePointer_back = passapCalibratePointer_back +2;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
