@@ -13,7 +13,7 @@ Here you find the instructions for the Memo II
 
 Attention!! New Schematics due to an error!!!!
 
-
+![Passap/Pfaff](https://www.hackerspace-bamberg.de/images/thumb/1/19/Passap_Pfaff_Schaltplan.svg/800px-Passap_Pfaff_Schaltplan.svg.png "Passap/Pfaff")
 
 See more at our project page https://www.hackerspace-bamberg.de/Passap_pfaff_e6000 (in German)
 
