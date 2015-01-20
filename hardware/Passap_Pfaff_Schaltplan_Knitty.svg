@@ -33,9 +33,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.30759145"
-     inkscape:cx="1036.1989"
-     inkscape:cy="630.1416"
+     inkscape:zoom="0.6151829"
+     inkscape:cx="865.60849"
+     inkscape:cy="415.74978"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -10906,13 +10906,13 @@
     </g>
     <path
        style="fill:none;stroke:#000000;stroke-width:3.43925023px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 1079.5546,670.56779 1386.4913,739.341"
+       d="M 1073.8075,694.70572 1386.4913,739.341"
        id="path22708"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:3.43925023px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 1119.405,636.83855 267.3047,75.64246"
+       d="m 1122.8533,628.79257 263.8564,83.68844"
        id="path22710"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
@@ -11105,13 +11105,12 @@
          x="380.29639"
          y="671.64618"
          style="font-size:27.51400185px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans"
-         id="tspan5546">1</tspan></text>
-    <path
-       style="fill:none;stroke:#000000;stroke-width:3.43925023px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 412.66242,660.32819 515.44377,0"
-       id="path23878"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc" />
+         id="tspan5546">Ground</tspan><tspan
+         sodipodi:role="line"
+         x="380.29639"
+         y="706.0387"
+         style="font-size:27.51400185px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans"
+         id="tspan5554">1</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:123.81300354px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -11164,7 +11163,7 @@
        sodipodi:cy="87.005035"
        sodipodi:rx="9.2857141"
        sodipodi:ry="9.2857141"
-       d="m 127.32143,87.005035 a 9.2857141,9.2857141 0 1 1 -18.57143,0 9.2857141,9.2857141 0 1 1 18.57143,0 z"
+       d="m 127.32143,87.005035 c 0,5.128359 -4.15736,9.285715 -9.28572,9.285715 -5.12836,0 -9.28571,-4.157356 -9.28571,-9.285715 0,-5.128358 4.15735,-9.285714 9.28571,-9.285714 5.12836,0 9.28572,4.157356 9.28572,9.285714 z"
        transform="matrix(0.49205362,0,0,0.49205362,547.13933,443.22728)" />
     <text
        xml:space="preserve"
@@ -11218,7 +11217,7 @@
        sodipodi:cy="87.005035"
        sodipodi:rx="9.2857141"
        sodipodi:ry="9.2857141"
-       d="m 127.32143,87.005035 a 9.2857141,9.2857141 0 1 1 -18.57143,0 9.2857141,9.2857141 0 1 1 18.57143,0 z"
+       d="m 127.32143,87.005035 c 0,5.128359 -4.15736,9.285715 -9.28572,9.285715 -5.12836,0 -9.28571,-4.157356 -9.28571,-9.285715 0,-5.128358 4.15735,-9.285714 9.28571,-9.285714 5.12836,0 9.28572,4.157356 9.28572,9.285714 z"
        transform="matrix(0.49205362,0,0,0.49205362,548.29826,528.13085)" />
     <path
        style="fill:none;stroke:#000000;stroke-width:3.43925023px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -11234,7 +11233,7 @@
        sodipodi:cy="87.005035"
        sodipodi:rx="9.2857141"
        sodipodi:ry="9.2857141"
-       d="m 127.32143,87.005035 a 9.2857141,9.2857141 0 1 1 -18.57143,0 9.2857141,9.2857141 0 1 1 18.57143,0 z"
+       d="m 127.32143,87.005035 c 0,5.128359 -4.15736,9.285715 -9.28572,9.285715 -5.12836,0 -9.28571,-4.157356 -9.28571,-9.285715 0,-5.128358 4.15735,-9.285714 9.28571,-9.285714 5.12836,0 9.28572,4.157356 9.28572,9.285714 z"
        transform="matrix(0.49205362,0,0,0.49205362,754.649,551.3649)" />
     <g
        transform="matrix(1.5203823,0,0,-1.5203823,31.361855,988.02414)"
@@ -11407,7 +11406,7 @@
        sodipodi:rx="5.1584997"
        sodipodi:ry="5.1584997"
        d="m 818.95159,632.81976 a 5.1584997,5.1584997 0 1 1 -10.317,0 5.1584997,5.1584997 0 1 1 10.317,0 z"
-       transform="translate(-1.2191496,-3.5936168)" />
+       transform="translate(-1.2191496,-5.0189042)" />
     <path
        style="color:#000000;fill:none;stroke:#000000;stroke-width:3.43899989;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
        d="m 412.66242,472.41379 129.86632,0 0,45.42529 63.21839,0"
@@ -11465,7 +11464,12 @@
          x="944.77161"
          y="669.79932"
          style="font-size:27.51400185px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans"
-         id="tspan3113-55-7">VIN: 12 V</tspan></text>
+         id="tspan3113-55-7"></tspan><tspan
+         sodipodi:role="line"
+         x="944.77161"
+         y="704.19183"
+         style="font-size:27.51400185px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans"
+         id="tspan5556">VIN: 12 V</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:123.81300354px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -11477,6 +11481,40 @@
          id="tspan3874-5-11-2-0-1"
          x="1640.9686"
          y="104.54451"
-         style="font-size:34.39250183px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans">Version 2   01-2015</tspan></text>
+         style="font-size:34.39250183px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans">Version 2.1   01-2015</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:123.81300354px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="193.39159"
+       y="614.64215"
+       id="text3872-1-8-2-1"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="193.39159"
+         y="614.64215"
+         style="font-size:27.51400185px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans"
+         id="tspan3113-2-7">Ground</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:3.43925023px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 413.05972,695.5554 515.44378,0"
+       id="path23878-4"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       sodipodi:type="arc"
+       id="path5538-0"
+       style="fill:#000000;stroke:none"
+       sodipodi:cx="813.79309"
+       sodipodi:cy="632.81976"
+       sodipodi:rx="5.1584997"
+       sodipodi:ry="5.1584997"
+       d="m 818.95159,632.81976 a 5.1584997,5.1584997 0 1 1 -10.317,0 5.1584997,5.1584997 0 1 1 10.317,0 z"
+       transform="translate(51.848008,-4.341143)" />
+    <path
+       style="color:#000000;fill:none;stroke:#000000;stroke-width:3.43899989;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+       d="m 486.2069,612.64368 379.38933,0 0,-37.72052"
+       id="path5594"
+       inkscape:connector-curvature="0"
+       transform="translate(0,52.36)" />
   </g>
 </svg>
