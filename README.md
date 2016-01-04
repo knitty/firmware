@@ -4,7 +4,7 @@
 
 ## Superba/Singer 624/9000/Memo II
 
-![Superba/Singer](https://www.hackerspace-bamberg.de/images/3/3d/Superba_Singer_Schaltplan.svg "Superba/Singer")
+OFFLINE
 
 See more at our project page https://www.hackerspace-bamberg.de/Singer_Superba (in German)
 Here you find the instructions for the Memo II
